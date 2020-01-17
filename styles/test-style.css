@@ -1,0 +1,15 @@
+p {
+    color: darkblue;
+}
+
+body {
+    margin: 0 auto;
+    background-color: paleturquoise;
+    padding: 0 20px 20px 20px;
+    border: 5px solid grey;
+}
+
+img {
+    display: block;
+    margin: 0;
+}
