@@ -1,0 +1,18 @@
+html {
+    color: white;
+    background-color: #1f1f1f;
+}
+
+h1, h3, p {
+    text-align: center
+}
+
+canvas {
+    padding: 0;
+    margin: auto;
+    display: block;
+}
+
+button {
+    display: inline-block;
+}

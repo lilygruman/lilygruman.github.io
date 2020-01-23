@@ -1,11 +1,34 @@
 var canvas = document.getElementById('circles');
 var context = canvas.getContext('2d');
+var audio = new AudioContext();
 
-// var audio = new AudioContext();
-// var oscillator = audio.createOscillator();
-// oscillator.frequency.setTargetAtTime(440, audio.currentTime, 0);
+function index2frequency(index) {
+    const aFrequency = 440;
+    const aMidi = 69;
+    const cMidi = 60;
+    const octaveRatio = 2;
+    return aFrequency * (octaveRatio ** ((index + cMidi - aMidi)/pitchNames.length))
+}
 
 const pitchNames = 'cndseftglahb'
+
+var playing = false;
+
+function createOscillator(index) {
+    var oscillator = audio.createOscillator();
+    oscillator.type = 'sine';
+    oscillator.frequency.setValueAtTime(
+        index2frequency(index),
+        audio.currentTime
+    );
+    oscillator.connect(audio.destination);
+    return oscillator;
+}
+
+var clearButton = document.getElementById('clear');
+var playButton = document.getElementById('play');
+var stopButton = document.getElementById('stop');
+stopButton.disabled = true;
 
 function normalize(interval) {
     if(interval > pitchNames.length) {
@@ -22,7 +45,7 @@ function normalize(interval) {
 }
 
 function distance(start, end) {
-    return Math.sqrt(((start.x - end.x) ** 2) + ((start.y - end.y) ** 2));
+    return Math.hypot(start.x - end.x, start.y - end.y);
 }
 
 class PitchDot {
@@ -34,6 +57,16 @@ class PitchDot {
         this.semitoneIndex = semitoneIndex;
         this.center = pitchCircle.getDotCenter(semitoneIndex);
         this.radius = pitchCircle.radius / 20;
+        this.oscillator = createOscillator(this.semitoneIndex);
+    }
+
+    play() {
+        this.oscillator.start(audio.currentTime);
+    }
+
+    stop() {
+        this.oscillator.stop(audio.currentTime);
+        this.oscillator = createOscillator(this.semitoneIndex);
     }
 
     onclick(mouse) {
@@ -51,7 +84,7 @@ class PitchDot {
                         context.strokeStyle = 'yellow';
                         break;
                     case 2:
-                        context.strokeStyle = 'cyan';
+                        context.strokeStyle = 'violet';
                         break;
                     case 3:
                         context.strokeStyle = 'green';
@@ -82,7 +115,7 @@ class PitchDot {
             }
         }
 
-        context.fillStyle = verticality[this.semitoneIndex] ? 'green' : 'black';
+        context.fillStyle = verticality[this.semitoneIndex] ? 'green' : 'white';
         context.beginPath();
         context.moveTo(
             this.center.x,
@@ -96,7 +129,6 @@ class PitchDot {
             2 * Math.PI
         );
         context.fill();
-
     }
 }
 
@@ -111,7 +143,7 @@ class PitchCircle {
             canvas.width/2,
             canvas.height/2
         ) - 20,
-        verticality: new Array(pitchNames.length).fill(0)
+        verticality: new Array(pitchNames.length).fill(false)
     }
 
     constructor(config) {
@@ -119,7 +151,7 @@ class PitchCircle {
         this.interval = config.interval || this.defaults.interval;
         this.center = config.center || this.defaults.center;
         this.radius = config.radius || this.defaults.radius;
-        this.verticality = this.defaults.verticality;
+        this.verticality = this.defaults.verticality.slice(0);
         this.dots = {};
         for(var i = 0; i < pitchNames.length; i++) {
             this.dots[pitchNames[i]] = new PitchDot(this, i);
@@ -129,6 +161,18 @@ class PitchCircle {
 
     togglePitch(index) {
         this.verticality[index] = !this.verticality[index];
+        this.draw();
+        if(playing) {
+            if(this.verticality[index]) {
+                this.dots[pitchNames[index]].play();
+            } else {
+                this.dots[pitchNames[index]].stop();
+            }
+        }
+    }
+
+    resetVerticality() {
+        this.verticality = this.defaults.verticality.slice(0);
         this.draw();
     }
 
@@ -149,7 +193,7 @@ class PitchCircle {
         context.clearRect(0, 0, canvas.width, canvas.height);
 
         var start = this.getDotCenter(0);
-        context.strokeStyle = 'black';
+        context.strokeStyle = 'grey';
         context.beginPath();
         context.moveTo(start.x, start.y);
         context.arc(this.center.x, this.center.y, this.radius, 0, 2 * Math.PI);
@@ -168,4 +212,32 @@ canvas.onclick = function() {
         x: event.offsetX,
         y: event.offsetY
     });
+}
+
+clearButton.onclick = function() {
+    stopButton.onclick();
+    cof.resetVerticality();
+}
+
+playButton.onclick = function() {
+    for(var i = 0; i < cof.verticality.length; i++) {
+        if(cof.verticality[i]) {
+            cof.dots[pitchNames[i]].play();
+        }
+        console.log('debug');
+    }
+    playButton.disabled = true;
+    stopButton.disabled = false;
+    playing = true;
+}
+
+stopButton.onclick = function() {
+    for(var i = 0; i < cof.verticality.length; i++) {
+        if(cof.verticality[i]) {
+            cof.dots[pitchNames[i]].stop();
+        }
+    }
+    stopButton.disabled = true;
+    playButton.disabled = false;
+    playing = false;
 }
