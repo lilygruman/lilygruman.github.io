@@ -15,14 +15,6 @@ const pitchNames = 'cndseftglahb'
 var playing = false;
 
 function createOscillator(index) {
-    var oscillator = audio.createOscillator();
-    oscillator.type = 'sine';
-    oscillator.frequency.setValueAtTime(
-        index2frequency(index),
-        audio.currentTime
-    );
-    oscillator.connect(audio.destination);
-    return oscillator;
 }
 
 var clearButton = document.getElementById('clear');
@@ -48,6 +40,57 @@ function distance(start, end) {
     return Math.hypot(start.x - end.x, start.y - end.y);
 }
 
+function line(start, end) {
+    context.beginPath();
+    context.moveTo(start.x, start.y);
+    context.lineTo(end.x, end.y);
+    context.stroke();
+}
+
+function circle(center, radius, fill) {
+    context.beginPath();
+    context.moveTo(
+        center.x + radius,
+        center.y
+    );
+    context.arc(
+        center.x,
+        center.y,
+        radius,
+        0,
+        2 * Math.PI
+    );
+    if(fill) {
+        context.fill();
+    } else {
+        context.stroke();
+    }
+}
+
+class PitchOscillator {
+    constructor(frequency) {
+        this.frequency = frequency;
+        this.oscillator = null;
+    }
+
+    play() {
+        this.oscillator = audio.createOscillator();
+        this.oscillator.type = 'triangle';
+        this.oscillator.frequency.setValueAtTime(
+            this.frequency,
+            audio.currentTime
+        );
+        this.oscillator.connect(audio.destination);
+        this.oscillator.start(audio.currentTime);
+    }
+
+    stop() {
+        this.oscillator.stop(audio.currentTime);
+        this.oscillator.disconnect(audio.destination);
+        this.oscillator = null;
+    }
+};
+
 class PitchDot {
     constructor(pitchCircle, semitoneIndex) {
         if(!pitchCircle || !(semitoneIndex !== 'undefined')) {
@@ -57,16 +100,15 @@ class PitchDot {
         this.semitoneIndex = semitoneIndex;
         this.center = pitchCircle.getDotCenter(semitoneIndex);
         this.radius = pitchCircle.radius / 20;
-        this.oscillator = createOscillator(this.semitoneIndex);
+        this.oscillator = new PitchOscillator(index2frequency(this.semitoneIndex));
     }
 
     play() {
-        this.oscillator.start(audio.currentTime);
+        this.oscillator.play();
     }
 
     stop() {
-        this.oscillator.stop(audio.currentTime);
-        this.oscillator = createOscillator(this.semitoneIndex);
+        this.oscillator.stop();
     }
 
     onclick(mouse) {
@@ -101,34 +143,12 @@ class PitchDot {
                     default:
                         continue;
                 }
-
-                context.beginPath();
-                context.moveTo(
-                    this.center.x,
-                    this.center.y
-                );
-                context.lineTo(
-                    this.pitchCircle.dots[pitch].center.x,
-                    this.pitchCircle.dots[pitch].center.y
-                );
-                context.stroke();
+                line(this.center, this.pitchCircle.dots[pitch].center);
             }
         }
 
         context.fillStyle = verticality[this.semitoneIndex] ? 'green' : 'white';
-        context.beginPath();
-        context.moveTo(
-            this.center.x,
-            this.center.y
-        );
-        context.arc(
-            this.center.x,
-            this.center.y,
-            this.radius,
-            0,
-            2 * Math.PI
-        );
-        context.fill();
+        circle(this.center, this.radius, true);
     }
 }
 
@@ -192,12 +212,8 @@ class PitchCircle {
     draw() {
         context.clearRect(0, 0, canvas.width, canvas.height);
 
-        var start = this.getDotCenter(0);
         context.strokeStyle = 'grey';
-        context.beginPath();
-        context.moveTo(start.x, start.y);
-        context.arc(this.center.x, this.center.y, this.radius, 0, 2 * Math.PI);
-        context.stroke();
+        circle(this.center, this.radius, false);
 
         for(var pitch in this.dots) {
             this.dots[pitch].draw(this.verticality);
