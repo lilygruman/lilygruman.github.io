@@ -14,16 +14,14 @@ const pitchNames = 'cndseftglahb'
 
 var playing = false;
 
-function createOscillator(index) {
-}
-
 var clearButton = document.getElementById('clear');
 var playButton = document.getElementById('play');
 var stopButton = document.getElementById('stop');
 stopButton.disabled = true;
 var rotateButtons = {
     flat: document.getElementById('flat'),
-    sharp: document.getElementById('sharp')
+    sharp: document.getElementById('sharp'),
+    interval: document.getElementById('interval')
 };
 
 function normalize(interval) {
@@ -85,6 +83,10 @@ class PitchOscillator {
     }
 
     play() {
+        if(this.oscillator !== null) {
+            return;
+        }
+
         this.oscillator = audio.createOscillator();
         this.oscillator.type = 'triangle';
         this.oscillator.frequency.setValueAtTime(
@@ -96,6 +98,10 @@ class PitchOscillator {
     }
 
     stop() {
+        if(this.oscillator === null) {
+            return;
+        }
+
         this.oscillator.stop(audio.currentTime);
         this.oscillator.disconnect(audio.destination);
         this.oscillator = null;
@@ -203,18 +209,16 @@ class PitchCircle {
     }
 
     play() {
-        for(var i = 0; i < cof.verticality.length; i++) {
-            if(cof.verticality[i]) {
-                cof.dots[pitchNames[i]].play();
+        for(var i = 0; i < this.verticality.length; i++) {
+            if(this.verticality[i]) {
+                this.dots[pitchNames[i]].play();
             }
         }
     }
 
     stop() {
         for(var i = 0; i < this.verticality.length; i++) {
-            if(this.verticality[i]) {
-                this.dots[pitchNames[i]].stop();
-            }
+            this.dots[pitchNames[i]].stop();
         }
     }
 
@@ -222,12 +226,17 @@ class PitchCircle {
         this.stop();
         this.verticality = verticality || this.defaults.verticality.slice(0);
         this.draw();
-        this.play();
+        if(playing) {
+            this.play();
+        }
     }
 
     rotate(n) {
         this.resetVerticality(this.verticality.map((_, i, verticality) => {
-                return verticality[mod(i - (this.interval * n), this.verticality.length)];
+            return verticality[mod(
+                i - n,
+                this.verticality.length
+            )];
         }));
     }
 
@@ -284,10 +293,15 @@ stopButton.onclick = function() {
     playing = false;
 }
 
+// Upward motion is flatward motion for odd intervals, sharpward for even
+function up2sharp(interval) {
+    return interval * ((-1) ** interval);
+}
+
 rotateButtons.flat.onclick = function() {
-    cof.rotate(-1);
+    cof.rotate(-up2sharp(parseInt(rotateButtons.interval.value)));
 }
 
 rotateButtons.sharp.onclick = function() {
-    cof.rotate(1);
+    cof.rotate(up2sharp(parseInt(rotateButtons.interval.value)));
 }
