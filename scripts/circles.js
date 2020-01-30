@@ -21,6 +21,10 @@ var clearButton = document.getElementById('clear');
 var playButton = document.getElementById('play');
 var stopButton = document.getElementById('stop');
 stopButton.disabled = true;
+var rotateButtons = {
+    flat: document.getElementById('flat'),
+    sharp: document.getElementById('sharp')
+};
 
 function normalize(interval) {
     if(interval > pitchNames.length) {
@@ -34,6 +38,13 @@ function normalize(interval) {
     } else {
         return interval;
     }
+}
+
+function mod(n, modulus) {
+    while(n < 0) {
+        n += modulus;
+    }
+    return n % modulus;
 }
 
 function distance(start, end) {
@@ -191,9 +202,33 @@ class PitchCircle {
         }
     }
 
-    resetVerticality() {
-        this.verticality = this.defaults.verticality.slice(0);
+    play() {
+        for(var i = 0; i < cof.verticality.length; i++) {
+            if(cof.verticality[i]) {
+                cof.dots[pitchNames[i]].play();
+            }
+        }
+    }
+
+    stop() {
+        for(var i = 0; i < this.verticality.length; i++) {
+            if(this.verticality[i]) {
+                this.dots[pitchNames[i]].stop();
+            }
+        }
+    }
+
+    resetVerticality(verticality) {
+        this.stop();
+        this.verticality = verticality || this.defaults.verticality.slice(0);
         this.draw();
+        this.play();
+    }
+
+    rotate(n) {
+        this.resetVerticality(this.verticality.map((_, i, verticality) => {
+                return verticality[mod(i - (this.interval * n), this.verticality.length)];
+        }));
     }
 
     getDotCenter(index) {
@@ -236,24 +271,23 @@ clearButton.onclick = function() {
 }
 
 playButton.onclick = function() {
-    for(var i = 0; i < cof.verticality.length; i++) {
-        if(cof.verticality[i]) {
-            cof.dots[pitchNames[i]].play();
-        }
-        console.log('debug');
-    }
+    cof.play();
     playButton.disabled = true;
     stopButton.disabled = false;
     playing = true;
 }
 
 stopButton.onclick = function() {
-    for(var i = 0; i < cof.verticality.length; i++) {
-        if(cof.verticality[i]) {
-            cof.dots[pitchNames[i]].stop();
-        }
-    }
+    cof.stop();
     stopButton.disabled = true;
     playButton.disabled = false;
     playing = false;
+}
+
+rotateButtons.flat.onclick = function() {
+    cof.rotate(-1);
+}
+
+rotateButtons.sharp.onclick = function() {
+    cof.rotate(1);
 }
