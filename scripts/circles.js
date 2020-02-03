@@ -21,7 +21,8 @@ stopButton.disabled = true;
 var rotateButtons = {
     flat: document.getElementById('flat'),
     sharp: document.getElementById('sharp'),
-    interval: document.getElementById('interval')
+    semis: document.getElementById('numSemis'),
+    fifths: document.getElementById('numFifths')
 };
 
 function normalize(interval) {
@@ -169,9 +170,11 @@ class PitchDot {
     }
 }
 
+var fifthInterval = 7;
+
 class PitchCircle {
     defaults = {
-        interval: 7,
+        interval: fifthInterval,
         center: {
             x: canvas.width/2,
             y: canvas.width/2
@@ -234,7 +237,7 @@ class PitchCircle {
     rotate(n) {
         this.resetVerticality(this.verticality.map((_, i, verticality) => {
             return verticality[mod(
-                i - n,
+                i - (this.interval * n),
                 this.verticality.length
             )];
         }));
@@ -267,11 +270,11 @@ class PitchCircle {
 
 var cof = new PitchCircle();
 
-canvas.onclick = function() {
-    cof.onclick({
+function getMouse() {
+    return {
         x: event.offsetX,
         y: event.offsetY
-    });
+    };
 }
 
 clearButton.onclick = function() {
@@ -293,15 +296,63 @@ stopButton.onclick = function() {
     playing = false;
 }
 
-// Upward motion is flatward motion for odd intervals, sharpward for even
-function up2sharp(interval) {
-    return interval * ((-1) ** interval);
-}
-
 rotateButtons.flat.onclick = function() {
-    cof.rotate(-up2sharp(parseInt(rotateButtons.interval.value)));
+    cof.rotate(-parseInt(rotateButtons.fifths.value));
 }
 
 rotateButtons.sharp.onclick = function() {
-    cof.rotate(up2sharp(parseInt(rotateButtons.interval.value)));
+    cof.rotate(parseInt(rotateButtons.fifths.value));
+}
+
+rotateButtons.fifths.onchange = function() {
+    rotateButtons.semis.value = normalize(fifthInterval * rotateButtons.fifths.value);
+}
+
+rotateButtons.semis.onchange = function() {
+    rotateButtons.fifths.value = normalize(fifthInterval * rotateButtons.semis.value);
+}
+
+function cart2pol(point, origin = {x: 0, y: 0}) {
+    return {
+        r: distance(point, origin),
+        theta: Math.atan2(
+            point.y - origin.y,
+            point.x - origin.x
+        )
+    }
+}
+
+function truncate(num) {
+    if(num < 0) {
+        return Math.ceil(num);
+    } else {
+        return Math.floor(num);
+    }
+}
+
+var theta = NaN;
+canvas.onmousedown = function() {
+    var mouse = getMouse();
+    cof.onclick(mouse);
+    theta = cart2pol(mouse, cof.center).theta;
+}
+
+canvas.onmousemove = function() {
+    if(!theta && (theta !== 0)) {
+        return;
+    }
+
+    var pitchDotOffsetAngle = 2 * Math.PI / pitchNames.length;
+    var dtheta = cart2pol(getMouse(), cof.center).theta - theta;
+
+    if(Math.abs(dtheta) < pitchDotOffsetAngle) {
+        return;
+    };
+
+    cof.rotate(truncate(dtheta / pitchDotOffsetAngle));
+    theta += dtheta;
+}
+
+canvas.onmouseup = function() {
+    theta = NaN;
 }
