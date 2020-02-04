@@ -2,15 +2,15 @@ var canvas = document.getElementById('circles');
 var context = canvas.getContext('2d');
 var audio = new AudioContext();
 
+var pitchNames = 'cndseftglahb';
+
 function index2frequency(index) {
     const aFrequency = 440;
     const aMidi = 69;
     const cMidi = 60;
     const octaveRatio = 2;
-    return aFrequency * (octaveRatio ** ((index + cMidi - aMidi)/pitchNames.length))
+    return aFrequency * (octaveRatio ** ((index + cMidi - aMidi) / pitchNames.length))
 }
-
-const pitchNames = 'cndseftglahb'
 
 var playing = false;
 
@@ -109,36 +109,154 @@ class PitchOscillator {
     }
 };
 
-class PitchDot {
-    constructor(pitchCircle, semitoneIndex) {
-        if(!pitchCircle || !(semitoneIndex !== 'undefined')) {
-            return;
-        }
-        this.pitchCircle = pitchCircle;
-        this.semitoneIndex = semitoneIndex;
-        this.center = pitchCircle.getDotCenter(semitoneIndex);
-        this.radius = pitchCircle.radius / 20;
+class Pitch {
+    constructor(name, on = false) {
+        this.name = name;
+        this.semitoneIndex = pitchNames.indexOf(name);
         this.oscillator = new PitchOscillator(index2frequency(this.semitoneIndex));
+        this.on = on;
+    }
+
+    toggle(playing) {
+        if(this.on) {
+            this.turnOff();
+        } else {
+            this.turnOn(playing);
+        }
+    }
+
+    turnOn(playing) {
+        this.on = true;
+        verticality.draw();
+        if(playing) {
+            console.log('debug');
+            this.play();
+        }
+    }
+
+    turnOff() {
+        this.on = false;
+        verticality.draw();
+        this.stop();
     }
 
     play() {
-        this.oscillator.play();
+        if(this.on) {
+            this.oscillator.play();
+        }
     }
 
     stop() {
         this.oscillator.stop();
     }
+}
 
-    onclick(mouse) {
-        if(distance(this.center, mouse) < this.radius) {
-            this.pitchCircle.togglePitch(this.semitoneIndex);
+function generateEmptyVerticality() {
+    return new Array(pitchNames.length).fill(false);
+}
+
+class Verticality {
+    constructor(verticality = generateEmptyVerticality()) {
+        this.playing = false;
+        this.pitches = {};
+        this.pitchCircles = [];
+        for(var i = 0; i < pitchNames.length; i++) {
+            this.pitches[pitchNames[i]]= new Pitch(pitchNames[i], verticality[i]);
         }
     }
 
-    draw(verticality) {
-        for(var pitch in this.pitchCircle.dots) {
-            if(verticality[this.pitchCircle.dots[pitch].semitoneIndex] && verticality[this.semitoneIndex]) {
-                var interval = this.pitchCircle.dots[pitch].semitoneIndex - this.semitoneIndex;
+    registerPitchCircle(pc) {
+        this.pitchCircles.push(pc);
+    }
+
+    set(verticality) {
+        for(var name in this.pitches) {
+            if(verticality[pitchNames.indexOf(name)]) {
+                this.pitches[name].turnOn(this.playing);
+            } else {
+                this.pitches[name].turnOff();
+            }
+        }
+    }
+
+    reset() {
+        this.set(generateEmptyVerticality());
+    }
+
+    togglePitch(name) {
+        this.pitches[name].toggle(this.playing);
+    }
+
+    play() {
+        if(this.playing) {
+            return;
+        }
+
+        this.playing = true;
+        for(var name in this.pitches) {
+            this.pitches[name].play();
+        }
+    }
+
+    stop() {
+        if(!this.playing) {
+            return;
+        }
+
+        this.playing = false;
+        for(var name in this.pitches) {
+            this.pitches[name].stop();
+        }
+    }
+
+    transpose(n) {
+        var buffer = {};
+
+        for(var name in this.pitches) {
+            buffer[name] = this.pitches[name].on;
+        }
+
+        for(var name in this.pitches) {
+            if(buffer[pitchNames[mod(pitchNames.indexOf(name) - n, pitchNames.length)]]) {
+                this.pitches[name].turnOn(this.playing);
+            } else {
+                this.pitches[name].turnOff();
+            }
+        }
+    }
+
+    draw() {
+        context.clearRect(0, 0, canvas.width, canvas.height);
+        for(var pc of this.pitchCircles) {
+            pc.draw();
+        }
+    }
+}
+
+var verticality = new Verticality();
+
+class PitchDot {
+    constructor(pitchCircle, pitch) {
+        if(!pitchCircle || !pitch) {
+            return;
+        }
+
+        this.pitch = pitch;
+        this.pitchCircle = pitchCircle;
+        this.center = pitchCircle.getDotCenter(pitch.name);
+        this.radius = pitchCircle.radius / 20;
+    }
+
+    onclick(mouse) {
+        if(distance(this.center, mouse) < this.radius) {
+            verticality.togglePitch(this.pitch.name);
+        }
+    }
+
+    draw() {
+        for(var name in verticality.pitches) {
+            if(verticality.pitches[name].on && this.pitch.on) {
+                var interval = verticality.pitches[name].semitoneIndex - this.pitch.semitoneIndex;
                 switch (normalize(interval)) {
                     case 1:
                         context.strokeStyle = 'yellow';
@@ -161,15 +279,16 @@ class PitchDot {
                     default:
                         continue;
                 }
-                line(this.center, this.pitchCircle.dots[pitch].center);
+                line(this.center, this.pitchCircle.dots[name].center);
             }
         }
 
-        context.fillStyle = verticality[this.semitoneIndex] ? 'green' : 'white';
+        context.fillStyle = this.pitch.on ? 'green' : 'white';
         circle(this.center, this.radius, true);
     }
 }
 
+var semitoneInterval = 1;
 var fifthInterval = 7;
 
 class PitchCircle {
@@ -182,8 +301,7 @@ class PitchCircle {
         radius: Math.min(
             canvas.width/2,
             canvas.height/2
-        ) - 20,
-        verticality: new Array(pitchNames.length).fill(false)
+        ) - 20
     }
 
     constructor(config) {
@@ -191,84 +309,91 @@ class PitchCircle {
         this.interval = config.interval || this.defaults.interval;
         this.center = config.center || this.defaults.center;
         this.radius = config.radius || this.defaults.radius;
-        this.verticality = this.defaults.verticality.slice(0);
+        this.mouseTheta = NaN;
         this.dots = {};
-        for(var i = 0; i < pitchNames.length; i++) {
-            this.dots[pitchNames[i]] = new PitchDot(this, i);
+        for(var name in verticality.pitches) {
+            this.dots[name] = new PitchDot(this, verticality.pitches[name]);
         }
         this.draw();
-    }
-
-    togglePitch(index) {
-        this.verticality[index] = !this.verticality[index];
-        this.draw();
-        if(playing) {
-            if(this.verticality[index]) {
-                this.dots[pitchNames[index]].play();
-            } else {
-                this.dots[pitchNames[index]].stop();
-            }
-        }
-    }
-
-    play() {
-        for(var i = 0; i < this.verticality.length; i++) {
-            if(this.verticality[i]) {
-                this.dots[pitchNames[i]].play();
-            }
-        }
-    }
-
-    stop() {
-        for(var i = 0; i < this.verticality.length; i++) {
-            this.dots[pitchNames[i]].stop();
-        }
-    }
-
-    resetVerticality(verticality) {
-        this.stop();
-        this.verticality = verticality || this.defaults.verticality.slice(0);
-        this.draw();
-        if(playing) {
-            this.play();
-        }
     }
 
     rotate(n) {
-        this.resetVerticality(this.verticality.map((_, i, verticality) => {
-            return verticality[mod(
-                i - (this.interval * n),
-                this.verticality.length
-            )];
-        }));
+        verticality.transpose(this.interval * n);
     }
 
-    getDotCenter(index) {
+    getDotCenter(pitchName) {
         return {
-            x: this.center.x + (this.radius * Math.cos(index * this.interval * 2 * Math.PI / pitchNames.length)),
-            y: this.center.y + (this.radius * Math.sin(index * this.interval * 2 * Math.PI / pitchNames.length))
+            x: this.center.x + (this.radius * Math.cos(pitchNames.indexOf(pitchName) * this.interval * 2 * Math.PI / pitchNames.length)),
+            y: this.center.y + (this.radius * Math.sin(pitchNames.indexOf(pitchName) * this.interval * 2 * Math.PI / pitchNames.length))
         }
     }
 
-    onclick(mouse) {
+    onmousedown(mouse) {
+        this.mouseTheta = cart2pol(mouse, this.center).theta;
         for(var pitch in this.dots) {
             this.dots[pitch].onclick(mouse);
         }
     }
 
-    draw() {
-        context.clearRect(0, 0, canvas.width, canvas.height);
+    onmousemove(mouse) {
+        if(!this.mouseTheta && (this.mouseTheta !== 0)) {
+            return;
+        }
 
+        if(distance(mouse, this.center) > this.radius) {
+            return;
+        }
+
+        var pitchDotOffsetAngle = 2 * Math.PI / pitchNames.length;
+        var dtheta = cart2pol(getMouse(), this.center).theta - this.mouseTheta;
+
+        if(Math.abs(dtheta) < pitchDotOffsetAngle) {
+            return;
+        };
+
+        this.rotate(truncate(dtheta / pitchDotOffsetAngle));
+        this.mouseTheta += dtheta;
+    }
+
+    onmouseup(mouse) {
+        this.mouseTheta = NaN;
+    }
+
+    draw() {
         context.strokeStyle = 'grey';
         circle(this.center, this.radius, false);
 
         for(var pitch in this.dots) {
-            this.dots[pitch].draw(this.verticality);
+            this.dots[pitch].draw();
         }
     }
 }
 
-var cof = new PitchCircle();
+var cof = new PitchCircle({
+    interval: fifthInterval,
+    center: {
+        x: 0.75 * canvas.width,
+        y: 0.5 * canvas.height
+    },
+    radius: Math.min(
+        canvas.width/4,
+        canvas.height/2
+    ) - 20
+});
+verticality.registerPitchCircle(cof);
+
+var cosemi = new PitchCircle({
+    interval: semitoneInterval,
+    center: {
+        x: 0.25 * canvas.width,
+        y: 0.5 * canvas.height
+    },
+    radius: Math.min(
+        canvas.width/4,
+        canvas.height/2
+    ) - 20
+});
+verticality.registerPitchCircle(cosemi);
 
 function getMouse() {
     return {
@@ -278,19 +403,18 @@ function getMouse() {
 }
 
 clearButton.onclick = function() {
-    stopButton.onclick();
-    cof.resetVerticality();
+    verticality.reset();
 }
 
 playButton.onclick = function() {
-    cof.play();
+    verticality.play();
     playButton.disabled = true;
     stopButton.disabled = false;
     playing = true;
 }
 
 stopButton.onclick = function() {
-    cof.stop();
+    verticality.stop();
     stopButton.disabled = true;
     playButton.disabled = false;
     playing = false;
@@ -333,26 +457,21 @@ function truncate(num) {
 var theta = NaN;
 canvas.onmousedown = function() {
     var mouse = getMouse();
-    cof.onclick(mouse);
-    theta = cart2pol(mouse, cof.center).theta;
+    for(var pc of verticality.pitchCircles) {
+        pc.onmousedown(mouse);
+    }
 }
 
 canvas.onmousemove = function() {
-    if(!theta && (theta !== 0)) {
-        return;
+    var mouse = getMouse();
+    for(var pc of verticality.pitchCircles) {
+        pc.onmousemove(mouse);
     }
-
-    var pitchDotOffsetAngle = 2 * Math.PI / pitchNames.length;
-    var dtheta = cart2pol(getMouse(), cof.center).theta - theta;
-
-    if(Math.abs(dtheta) < pitchDotOffsetAngle) {
-        return;
-    };
-
-    cof.rotate(truncate(dtheta / pitchDotOffsetAngle));
-    theta += dtheta;
 }
 
 canvas.onmouseup = function() {
-    theta = NaN;
+    var mouse = getMouse();
+    for(var pc of verticality.pitchCircles) {
+        pc.onmouseup(mouse);
+    }
 }
