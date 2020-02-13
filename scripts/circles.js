@@ -292,23 +292,25 @@ var semitoneInterval = 1;
 var fifthInterval = 7;
 
 class PitchCircle {
-    defaults = {
-        interval: fifthInterval,
-        center: {
-            x: canvas.width/2,
-            y: canvas.width/2
-        },
-        radius: Math.min(
-            canvas.width/2,
-            canvas.height/2
-        ) - 20
+    defaults() {
+        return {
+            interval: fifthInterval,
+            center: {
+                x: canvas.width/2,
+                y: canvas.width/2
+            },
+            radius: Math.min(
+                canvas.width/2,
+                canvas.height/2
+            ) - 20
+        }
     }
 
     constructor(config) {
-        config = config || this.defaults;
-        this.interval = config.interval || this.defaults.interval;
-        this.center = config.center || this.defaults.center;
-        this.radius = config.radius || this.defaults.radius;
+        config = config || this.defaults();
+        this.interval = config.interval || this.defaults().interval;
+        this.center = config.center || this.defaults().center;
+        this.radius = config.radius || this.defaults().radius;
         this.mouseTheta = NaN;
         this.dots = {};
         for(var name in verticality.pitches) {
