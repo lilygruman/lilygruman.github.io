@@ -288,8 +288,8 @@ class PitchDot {
     }
 }
 
-var semitoneInterval = 1;
-var fifthInterval = 7;
+const semitoneInterval = 1;
+const fifthInterval = 7;
 
 class PitchCircle {
     defaults() {
