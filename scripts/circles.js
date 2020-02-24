@@ -12,8 +12,6 @@ function index2frequency(index) {
     return aFrequency * (octaveRatio ** ((index + cMidi - aMidi) / pitchNames.length))
 }
 
-var playing = false;
-
 var clearButton = document.getElementById('clear');
 var playButton = document.getElementById('play');
 var stopButton = document.getElementById('stop');
@@ -129,7 +127,6 @@ class Pitch {
         this.on = true;
         verticality.draw();
         if(playing) {
-            console.log('debug');
             this.play();
         }
     }
@@ -188,10 +185,6 @@ class Verticality {
     }
 
     play() {
-        if(this.playing) {
-            return;
-        }
-
         this.playing = true;
         for(var name in this.pitches) {
             this.pitches[name].play();
@@ -199,10 +192,6 @@ class Verticality {
     }
 
     stop() {
-        if(!this.playing) {
-            return;
-        }
-
         this.playing = false;
         for(var name in this.pitches) {
             this.pitches[name].stop();
@@ -238,7 +227,7 @@ var verticality = new Verticality();
 class PitchDot {
     constructor(pitchCircle, pitch) {
         if(!pitchCircle || !pitch) {
-            return;
+            return undefined;
         }
 
         this.pitch = pitch;
@@ -311,7 +300,7 @@ class PitchCircle {
         this.interval = config.interval || this.defaults().interval;
         this.center = config.center || this.defaults().center;
         this.radius = config.radius || this.defaults().radius;
-        this.mouseTheta = NaN;
+        this.mouse = undefined;
         this.dots = {};
         for(var name in verticality.pitches) {
             this.dots[name] = new PitchDot(this, verticality.pitches[name]);
@@ -331,34 +320,40 @@ class PitchCircle {
     }
 
     onmousedown(mouse) {
-        this.mouseTheta = cart2pol(mouse, this.center).theta;
+        this.mouse = cart2pol(mouse, this.center);
+        if(mouse.r > this.radius) {
+            this.mouse = undefined;
+            return;
+        }
         for(var pitch in this.dots) {
             this.dots[pitch].onclick(mouse);
         }
     }
 
     onmousemove(mouse) {
-        if(!this.mouseTheta && (this.mouseTheta !== 0)) {
+        if(!this.mouse) {
             return;
         }
 
-        if(distance(mouse, this.center) > this.radius) {
+        var mousePolar = cart2pol(mouse, this.center);
+        if(mousePolar.r > this.radius) {
+            this.mouse = undefined;
             return;
         }
 
         var pitchDotOffsetAngle = 2 * Math.PI / pitchNames.length;
-        var dtheta = cart2pol(getMouse(), this.center).theta - this.mouseTheta;
+        var dtheta = mousePolar.theta - this.mouse.theta;
 
         if(Math.abs(dtheta) < pitchDotOffsetAngle) {
             return;
         };
 
         this.rotate(truncate(dtheta / pitchDotOffsetAngle));
-        this.mouseTheta += dtheta;
+        this.mouse = mousePolar;
     }
 
-    onmouseup(mouse) {
-        this.mouseTheta = NaN;
+    onmouseup() {
+        this.mouse = undefined;
     }
 
     draw() {
@@ -412,14 +407,12 @@ playButton.onclick = function() {
     verticality.play();
     playButton.disabled = true;
     stopButton.disabled = false;
-    playing = true;
 }
 
 stopButton.onclick = function() {
     verticality.stop();
     stopButton.disabled = true;
     playButton.disabled = false;
-    playing = false;
 }
 
 rotateButtons.flat.onclick = function() {
