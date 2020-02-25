@@ -198,20 +198,38 @@ class Verticality {
         }
     }
 
-    transpose(n) {
+    get() {
         var buffer = {};
 
         for(var name in this.pitches) {
             buffer[name] = this.pitches[name].on;
         }
+        return buffer;
+    }
 
+    transform(mapping) {
+        var verticality = this.get();
         for(var name in this.pitches) {
-            if(buffer[pitchNames[mod(pitchNames.indexOf(name) - n, pitchNames.length)]]) {
+            if(verticality[mapping(name)]) {
                 this.pitches[name].turnOn(this.playing);
             } else {
                 this.pitches[name].turnOff();
             }
         }
+    }
+
+    transpose(n) {
+        var mapping = function(name) {
+            return pitchNames[mod(pitchNames.indexOf(name) - n, pitchNames.length)];
+        }
+        this.transform(mapping);
+    }
+
+    mirror(center) {
+        var mapping = function(name) {
+            return pitchNames[mod(pitchNames.indexOf(center) - pitchNames.indexOf(name), pitchNames.length)];
+        }
+        this.transform(mapping);
     }
 
     draw() {
