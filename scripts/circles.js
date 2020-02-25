@@ -292,6 +292,11 @@ class PitchDot {
 
         context.fillStyle = this.pitch.on ? 'green' : 'white';
         circle(this.center, this.radius, true);
+
+        context.textAlign = 'center';
+        context.textBaseline = 'middle';
+        context.fillStyle = 'black';
+        context.fillText(this.pitch.name.toUpperCase(), this.center.x, this.center.y);
     }
 }
 
