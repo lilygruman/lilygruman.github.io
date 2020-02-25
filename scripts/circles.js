@@ -220,14 +220,20 @@ class Verticality {
 
     transpose(n) {
         var mapping = function(name) {
-            return pitchNames[mod(pitchNames.indexOf(name) - n, pitchNames.length)];
+            return pitchNames[mod(
+                pitchNames.indexOf(name) - n,
+                pitchNames.length
+            )];
         }
         this.transform(mapping);
     }
 
     mirror(center) {
         var mapping = function(name) {
-            return pitchNames[mod((2 * pitchNames.indexOf(center)) - pitchNames.indexOf(name), pitchNames.length)];
+            return pitchNames[mod(
+                (2 * pitchNames.indexOf(center)) - pitchNames.indexOf(name),
+                pitchNames.length
+            )];
         }
         this.transform(mapping);
     }
