@@ -8,12 +8,38 @@
     <body>
         <h1>Interactive Chromatic Circles</h1>
         <p>
-            <canvas id="circles" width="500" height="250"></canvas>
-            Rotate:
+            <canvas id="circles" width="700" height="400"></canvas>
+            Rotate
             <button type="button" id="flat">Flat</button>
             <button type="button" id="sharp">Sharp</button>
-            <input type="number" id="numSemis" min="1" max="6" size="1" value="5">Semitones</input>
-            <input type="number" id="numFifths" min="1" max="6" size="1" value="1">Fifths</input>
+            by
+        </p>
+        <p>
+            fifths:
+            <input type="number" id="numFifths" min="1" max="6" size="1" value="1"></input>
+            , or
+        </p>
+        <p>
+            semitones:
+            <input type="number" id="numSemis" min="1" max="6" size="1" value="5"></input>
+        </p>
+        <p>
+            <button type="button" id="mirror">Mirror</button>
+            around
+            <select id="mirror-center">
+                <option value="c">C</option>
+                <option value="n">N</option>
+                <option value="d">D</option>
+                <option value="s">S</option>
+                <option value="e">E</option>
+                <option value="f">F</option>
+                <option value="t">T</option>
+                <option value="g">G</option>
+                <option value="l">L</option>
+                <option value="a">A</option>
+                <option value="h">H</option>
+                <option value="b">B</option>
+            </select>
         </p>
         <p>
             <button type="button" id="play">Play</button>

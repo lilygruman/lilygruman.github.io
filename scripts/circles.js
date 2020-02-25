@@ -12,16 +12,27 @@ function index2frequency(index) {
     return aFrequency * (octaveRatio ** ((index + cMidi - aMidi) / pitchNames.length))
 }
 
-var clearButton = document.getElementById('clear');
-var playButton = document.getElementById('play');
-var stopButton = document.getElementById('stop');
-stopButton.disabled = true;
-var rotateButtons = {
-    flat: document.getElementById('flat'),
-    sharp: document.getElementById('sharp'),
-    semis: document.getElementById('numSemis'),
-    fifths: document.getElementById('numFifths')
-};
+var buttons = {
+    clear: document.getElementById('clear'),
+    play: document.getElementById('play'),
+    stop: document.getElementById('stop'),
+    rotate: {
+        flat: document.getElementById('flat'),
+        sharp: document.getElementById('sharp'),
+    },
+    mirror: document.getElementById('mirror')
+}
+buttons.stop.disabled = true;
+
+var inputs = {
+    rotate: {
+        semis: document.getElementById('numSemis'),
+        fifths: document.getElementById('numFifths')
+    },
+    mirror: {
+        center: document.getElementById('mirror-center')
+    }
+}
 
 function normalize(interval) {
     if(interval > pitchNames.length) {
@@ -428,36 +439,40 @@ function getMouse() {
     };
 }
 
-clearButton.onclick = function() {
+buttons.clear.onclick = function() {
     verticality.reset();
 }
 
-playButton.onclick = function() {
+buttons.play.onclick = function() {
     verticality.play();
-    playButton.disabled = true;
-    stopButton.disabled = false;
+    buttons.play.disabled = true;
+    buttons.stop.disabled = false;
 }
 
-stopButton.onclick = function() {
+buttons.stop.onclick = function() {
     verticality.stop();
-    stopButton.disabled = true;
-    playButton.disabled = false;
+    buttons.stop.disabled = true;
+    buttons.play.disabled = false;
 }
 
-rotateButtons.flat.onclick = function() {
-    cof.rotate(-parseInt(rotateButtons.fifths.value));
+buttons.rotate.flat.onclick = function() {
+    cof.rotate(-parseInt(inputs.rotate.fifths.value));
 }
 
-rotateButtons.sharp.onclick = function() {
-    cof.rotate(parseInt(rotateButtons.fifths.value));
+buttons.rotate.sharp.onclick = function() {
+    cof.rotate(parseInt(inputs.rotate.fifths.value));
 }
 
-rotateButtons.fifths.onchange = function() {
-    rotateButtons.semis.value = normalize(fifthInterval * rotateButtons.fifths.value);
+inputs.rotate.fifths.onchange = function() {
+    inputs.rotate.semis.value = normalize(fifthInterval * inputs.rotate.fifths.value);
 }
 
-rotateButtons.semis.onchange = function() {
-    rotateButtons.fifths.value = normalize(fifthInterval * rotateButtons.semis.value);
+inputs.rotate.semis.onchange = function() {
+    inputs.rotate.fifths.value = normalize(fifthInterval * inputs.rotate.semis.value);
+}
+
+buttons.mirror.onclick = function() {
+    verticality.mirror(inputs.mirror.center.value);
 }
 
 function cart2pol(point, origin = {x: 0, y: 0}) {
