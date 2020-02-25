@@ -227,7 +227,7 @@ class Verticality {
 
     mirror(center) {
         var mapping = function(name) {
-            return pitchNames[mod(pitchNames.indexOf(center) - pitchNames.indexOf(name), pitchNames.length)];
+            return pitchNames[mod((2 * pitchNames.indexOf(center)) - pitchNames.indexOf(name), pitchNames.length)];
         }
         this.transform(mapping);
     }
