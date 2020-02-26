@@ -179,11 +179,19 @@ class Verticality {
 
     set(verticality) {
         for(var name in this.pitches) {
-            if(verticality[pitchNames.indexOf(name)]) {
-                this.pitches[name].turnOn(this.playing);
-            } else {
-                this.pitches[name].turnOff();
-            }
+            this.setPitch(name, verticality[pitchNames.indexOf(name)]);
+        }
+    }
+
+    setPitch(name, value) {
+        if(!(name in this.pitches)) {
+            return;
+        }
+
+        if(value) {
+            this.pitches[name].turnOn(this.playing);
+        } else {
+            this.pitches[name].turnOff();
         }
     }
 
@@ -493,7 +501,6 @@ function truncate(num) {
     }
 }
 
-var theta = NaN;
 canvas.onmousedown = function() {
     var mouse = getMouse();
     for(var pc of verticality.pitchCircles) {
@@ -513,4 +520,12 @@ canvas.onmouseup = function() {
     for(var pc of verticality.pitchCircles) {
         pc.onmouseup(mouse);
     }
+}
+
+window.onkeydown = function() {
+    verticality.setPitch(event.key, true);
+}
+
+window.onkeyup = function() {
+    verticality.setPitch(event.key, false);
 }
