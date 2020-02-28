@@ -55,6 +55,13 @@ function mod(n, modulus) {
     return n % modulus;
 }
 
+function transpose(pitch, n) {
+    return pitchNames[mod(
+        pitchNames.indexOf(pitch) + n,
+        pitchNames.length
+    )]
+}
+
 function distance(start, end) {
     return Math.hypot(start.x - end.x, start.y - end.y);
 }
@@ -79,6 +86,26 @@ function circle(center, radius, fill) {
         0,
         2 * Math.PI
     );
+    if(fill) {
+        context.fill();
+    } else {
+        context.stroke();
+    }
+}
+
+function semicircle(center, radius, angle, fill) {
+    context.beginPath();
+    context.moveTo(
+        center.x + (radius * Math.cos(angle)),
+        center.y + (radius * Math.sin(angle))
+    );
+    context.arc(
+        center.x,
+        center.y,
+        radius,
+        angle,
+        angle + Math.PI
+    )
     if(fill) {
         context.fill();
     } else {
@@ -408,8 +435,34 @@ class PitchCircle {
         context.strokeStyle = 'grey';
         circle(this.center, this.radius, false);
 
+        if(this.interval === fifthInterval) {
+            this.drawDiatonic();
+        }
+
         for(var pitch in this.dots) {
             this.dots[pitch].draw();
+        }
+    }
+
+    drawDiatonic() {
+        context.fillStyle = 'rgba(255, 255, 255, 0.1)';
+        var v = verticality.get();
+        for(var pitch in this.dots) {
+            var diatonic = true;
+            for(var i = 1; i < 6; i++) {
+                diatonic = diatonic && !v[transpose(
+                    pitch,
+                    -fifthInterval * i
+                )];
+            }
+            if(diatonic) {
+                semicircle(
+                    this.center,
+                    this.radius,
+                    this.interval * pitchNames.indexOf(pitch) * 2 * Math.PI / pitchNames.length,
+                    true
+                );
+            }
         }
     }
 }
@@ -522,10 +575,6 @@ canvas.onmouseup = function() {
     }
 }
 
-window.onkeydown = function() {
-    verticality.setPitch(event.key, true);
-}
-
-window.onkeyup = function() {
-    verticality.setPitch(event.key, false);
+window.onkeypress = function() {
+    verticality.togglePitch(event.key);
 }
