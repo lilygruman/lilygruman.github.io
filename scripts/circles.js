@@ -1,14 +1,21 @@
 var canvas = document.getElementById('circles');
 var context = canvas.getContext('2d');
 var audio = new AudioContext();
+var mixer = audio.createGain();
+mixer.connect(audio.destination);
 
-var pitchNames = 'cndseftglahb';
+const pitchNames = 'cndseftglahb';
+const octaveRatio = 2;
+
+mixer.gain.setValueAtTime(
+    1 / pitchNames.length,
+    audio.currentTime
+);
 
 function index2frequency(index) {
     const aFrequency = 440;
     const aMidi = 69;
     const cMidi = 60;
-    const octaveRatio = 2;
     return aFrequency * (octaveRatio ** ((index + cMidi - aMidi) / pitchNames.length))
 }
 
@@ -130,7 +137,7 @@ class PitchOscillator {
             this.frequency,
             audio.currentTime
         );
-        this.oscillator.connect(audio.destination);
+        this.oscillator.connect(mixer);
         this.oscillator.start(audio.currentTime);
     }
 
@@ -140,7 +147,7 @@ class PitchOscillator {
         }
 
         this.oscillator.stop(audio.currentTime);
-        this.oscillator.disconnect(audio.destination);
+        this.oscillator.disconnect(mixer);
         this.oscillator = null;
     }
 };
