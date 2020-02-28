@@ -227,6 +227,10 @@ class Verticality {
     }
 
     togglePitch(name) {
+        if(!(name in this.pitches)) {
+            return;
+        }
+
         this.pitches[name].toggle(this.playing);
     }
 
