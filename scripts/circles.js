@@ -586,6 +586,29 @@ canvas.onmouseup = function() {
     }
 }
 
-window.onkeypress = function() {
-    verticality.togglePitch(event.key);
+window.onkeydown = function() {
+    switch(event.key) {
+        case "ArrowRight":
+            cof.rotate(-1);
+            break;
+        case "ArrowLeft":
+            cof.rotate(1);
+            break;
+        case "ArrowDown":
+            cosemi.rotate(-1);
+            break;
+        case "ArrowUp":
+            cosemi.rotate(1);
+            break;
+        case ' ':
+            if(!buttons.play.disabled) {
+                buttons.play.onclick();
+            } else if(!buttons.stop.disabled) {
+                buttons.stop.onclick();
+            }
+            break;
+        default:
+            verticality.togglePitch(event.key);
+            break;
+    }
 }
