@@ -322,6 +322,17 @@ class Verticality {
 
 var verticality = new Verticality();
 
+const semitoneInterval = 1;
+const fifthInterval = 7;
+const intervalColors = {
+    1: 'yellow',
+    2: 'violet',
+    3: 'green',
+    4: 'lime',
+    5: 'blue',
+    6: 'red'
+};
+
 class PitchDot {
     constructor(pitchCircle, pitch) {
         if(!pitchCircle || !pitch) {
@@ -340,35 +351,25 @@ class PitchDot {
         }
     }
 
-    draw() {
-        for(var name in verticality.pitches) {
-            if(verticality.pitches[name].on && this.pitch.on) {
-                var interval = verticality.pitches[name].semitoneIndex - this.pitch.semitoneIndex;
-                switch (normalize(interval)) {
-                    case 1:
-                        context.strokeStyle = 'yellow';
-                        break;
-                    case 2:
-                        context.strokeStyle = 'violet';
-                        break;
-                    case 3:
-                        context.strokeStyle = 'green';
-                        break;
-                    case 4:
-                        context.strokeStyle = 'lime';
-                        break;
-                    case 5:
-                        context.strokeStyle = 'blue'
-                        break;
-                    case 6:
-                        context.strokeStyle = 'red';
-                        break;
-                    default:
-                        continue;
-                }
-                line(this.center, this.pitchCircle.dots[name].center);
-            }
+    drawIntervalLines() {
+        if(!this.pitch.on) {
+            return;
         }
+        for(var name in verticality.pitches) {
+            if(!verticality.pitches[name].on) {
+                continue;
+            }
+            var interval = normalize(verticality.pitches[name].semitoneIndex - this.pitch.semitoneIndex);
+            if(!(interval in intervalColors)) {
+                continue;
+            }
+            context.strokeStyle = intervalColors[interval];
+            line(this.center, this.pitchCircle.dots[name].center);
+        }
+    }
+
+    draw() {
+        this.drawIntervalLines();
 
         context.fillStyle = this.pitch.on ? 'green' : 'white';
         circle(this.center, this.radius, true);
@@ -379,9 +380,6 @@ class PitchDot {
         context.fillText(this.pitch.name.toUpperCase(), this.center.x, this.center.y);
     }
 }
-
-const semitoneInterval = 1;
-const fifthInterval = 7;
 
 class PitchCircle {
     defaults() {
@@ -423,13 +421,12 @@ class PitchCircle {
     }
 
     onmousedown(mouse) {
+        for(var pitch in this.dots) {
+            this.dots[pitch].onclick(mouse);
+        }
         this.mouse = cart2pol(mouse, this.center);
         if(mouse.r > this.radius) {
             this.mouse = undefined;
-            return;
-        }
-        for(var pitch in this.dots) {
-            this.dots[pitch].onclick(mouse);
         }
     }
 
@@ -444,8 +441,8 @@ class PitchCircle {
             return;
         }
 
-        var pitchDotOffsetAngle = 2 * Math.PI / pitchNames.length;
-        var dtheta = mousePolar.theta - this.mouse.theta;
+        const pitchDotOffsetAngle = 2 * Math.PI / pitchNames.length;
+        var dtheta = moushePolar.theta - this.mouse.theta;
 
         if(Math.abs(dtheta) < pitchDotOffsetAngle) {
             return;
