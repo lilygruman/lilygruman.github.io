@@ -246,12 +246,24 @@ class Verticality {
         for(var name in this.pitches) {
             this.pitches[name].play();
         }
+        buttons.play.disabled = true;
+        buttons.stop.disabled = false;
     }
 
     stop() {
         this.playing = false;
         for(var name in this.pitches) {
             this.pitches[name].stop();
+        }
+        buttons.play.disabled = false;
+        buttons.stop.disabled = true;
+    }
+
+    togglePlay() {
+        if(this.playing) {
+            this.stop();
+        } else {
+            this.play();
         }
     }
 
@@ -516,15 +528,17 @@ buttons.clear.onclick = function() {
 }
 
 buttons.play.onclick = function() {
+    if(buttons.play.disabled) {
+        return;
+    }
     verticality.play();
-    buttons.play.disabled = true;
-    buttons.stop.disabled = false;
 }
 
 buttons.stop.onclick = function() {
+    if(buttons.stop.disabled) {
+        return;
+    }
     verticality.stop();
-    buttons.stop.disabled = true;
-    buttons.play.disabled = false;
 }
 
 buttons.rotate.flat.onclick = function() {
@@ -601,11 +615,7 @@ window.onkeydown = function() {
             cosemi.rotate(1);
             break;
         case ' ':
-            if(!buttons.play.disabled) {
-                buttons.play.onclick();
-            } else if(!buttons.stop.disabled) {
-                buttons.stop.onclick();
-            }
+            verticality.togglePlay();
             break;
         default:
             verticality.togglePitch(event.key);
