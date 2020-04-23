@@ -599,11 +599,10 @@ class PitchCircle {
     draw() {
         context.strokeStyle = 'grey';
         circle(this.center, this.radius, false);
-
         if(this.interval === fifthInterval) {
             this.drawDiatonic();
+            this.drawHarmonicMode();
         }
-
         for(var pitch in this.dots) {
             this.dots[pitch].draw();
         }
@@ -629,6 +628,20 @@ class PitchCircle {
                 );
             }
         }
+    }
+
+    drawHarmonicMode() {
+        if(!verticality.chord || !(verticality.chord.quality === 'major' || verticality.chord.quality === 'dominant')) {
+            return;
+        }
+        context.fillStyle = 'rgba(255, 55, 55, 0.1)';
+        var VI = transpose(verticality.chord.root, 1);
+        semicircle(
+            this.center,
+            this.radius,
+            this.interval * pitchIndex(VI) * 2 * Math.PI / pitchNames.length,
+            true
+        );
     }
 }
 
