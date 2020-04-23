@@ -205,6 +205,101 @@ function generateEmptyVerticality() {
     return new Array(pitchNames.length).fill(false);
 }
 
+const indices = {
+    diminished: [3, 6],
+    minor: [3, 7],
+    major: [4, 7],
+    italian: [4, 10],
+    dominant: [4, 7, 10],
+    french: [4, 6, 10]
+}
+
+const functionInfo = {
+    I: {
+        quality: 'major',
+        relativeRoot: 0,
+        destinations: ['i', 'N', 'ii', 'IV', 'V', 'V7', 'Ger', 'vi']
+    },
+    i: {
+        quality: 'minor',
+        relativeRoot: 0,
+        destinations: ['I', 'N', 'iv', 'V', 'V7', 'Ger', 'VI']
+    },
+    N: {
+        quality: 'major',
+        relativeRoot: 1,
+        destinations: ['V', 'V7']
+    },
+    ii: {
+        quality: 'minor',
+        relativeRoot: 2,
+        destinations: ['V', 'V7', 'Ger']
+    },
+    iv: {
+        quality: 'minor',
+        relativeRoot: 5,
+        destinations: ['i', 'V', 'V7', 'Ger']
+    },
+    IV: {
+        quality: 'major',
+        relativeRoot: 5,
+        destinations: ['I', 'ii', 'V', 'V7', 'Ger']
+    },
+    V: {
+        quality: 'major',
+        relativeRoot: 7,
+        destinations: ['i', 'I', 'VI', 'V7', 'vi']
+    },
+    V7: {
+        quality: 'dominant',
+        relativeRoot: 7,
+        destinations: ['i', 'I', 'VI', 'vi']
+    },
+    Ger: {
+        quality: 'dominant',
+        relativeRoot: 8,
+        destinations: ['V', 'V7']
+    },
+    VI: {
+        quality: 'major',
+        relativeRoot: 8,
+        destinations: ['iv', 'Ger']
+    },
+    vi: {
+        quality: 'minor',
+        relativeRoot: 9,
+        destinations: ['ii', 'IV']
+    }
+}
+
+function getChordInfo(root, quality) {
+    var info = {
+        spelling: '' + root,
+        verticality: generateEmptyVerticality()
+    };
+    info.verticality[pitchIndex(root)] = true;
+    for(var i of indices[quality]) {
+        var pitch = transpose(root, i);
+        info.spelling += pitch;
+        info.verticality[pitchIndex(pitch)] = true;
+    }
+    return info;
+}
+
+function getFunctionInfo(numeral, key) {
+    var info = {
+        spelling: transpose(key, numeral.relativeRoot),
+        verticality: generateEmptyVerticality()
+    };
+    info.verticality[numeral.relativeRoot] = true;
+    for(var i of indices[numeral.quality]) {
+        var pitch = numeral.relativeRoot + i;
+        info.spelling += pitchName(pitch);
+        info.verticality[pitch] = true;
+    }
+    return info;
+}
+
 class Verticality {
     constructor(verticality = generateEmptyVerticality()) {
         this.playing = false;
@@ -314,8 +409,53 @@ class Verticality {
 
     draw() {
         context.clearRect(0, 0, canvas.width, canvas.height);
+        verticality.detect();
         for(var pc of this.pitchCircles) {
             pc.draw();
+        }
+    }
+
+    detect() {
+        var verticality = this.get();
+        var match = false;
+        this.chord = {};
+        for(var pitch in verticality) {
+            if(!verticality[pitch]) {
+                continue;
+            }
+            for(var quality in indices) {
+                match = true;
+                for(var i = 1; match && (i < pitchNames.length); i++) {
+                    match = match && (verticality[transpose(pitch, i)] === indices[quality].includes(i));
+                }
+                if(match) {
+                    this.chord.quality = quality;
+                    break;
+                }
+            }
+            if(match) {
+                this.chord.root = pitch;
+                break;
+            }
+        }
+        if(!match) {
+            return;
+        }
+        for(var f in functionInfo) {
+            if(functionInfo[f].quality !== this.chord.quality) {
+                continue;
+            }
+            var key = transpose(this.chord.root, -functionInfo[f].relativeRoot);
+            var destinations = {};
+            for(var d of functionInfo[f].destinations) {
+                destinations[d] = getChordInfo(
+                    transpose(
+                        key,
+                        functionInfo[d].relativeRoot
+                    ),
+                    functionInfo[d].quality
+                );
+            }
         }
     }
 }
@@ -474,7 +614,7 @@ class PitchCircle {
         var v = verticality.get();
         for(var pitch in this.dots) {
             var diatonic = true;
-            for(var i = 1; i < 6; i++) {
+            for(var i = 1; diatonic && (i < 6); i++) {
                 diatonic = diatonic && !v[transpose(
                     pitch,
                     -fifthInterval * i
