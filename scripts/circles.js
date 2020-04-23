@@ -62,11 +62,19 @@ function mod(n, modulus) {
     return n % modulus;
 }
 
-function transpose(pitch, n) {
+function pitchName(index) {
     return pitchNames[mod(
-        pitchNames.indexOf(pitch) + n,
+        index,
         pitchNames.length
-    )]
+    )];
+}
+
+function pitchIndex(name) {
+    return pitchNames.indexOf(name);
+}
+
+function transpose(pitch, n) {
+    return pitchName(pitchIndex(pitch) + n);
 }
 
 function distance(start, end) {
@@ -155,7 +163,7 @@ class PitchOscillator {
 class Pitch {
     constructor(name, on = false) {
         this.name = name;
-        this.semitoneIndex = pitchNames.indexOf(name);
+        this.semitoneIndex = pitchIndex(name);
         this.oscillator = new PitchOscillator(index2frequency(this.semitoneIndex));
         this.on = on;
     }
@@ -203,7 +211,10 @@ class Verticality {
         this.pitches = {};
         this.pitchCircles = [];
         for(var i = 0; i < pitchNames.length; i++) {
-            this.pitches[pitchNames[i]]= new Pitch(pitchNames[i], verticality[i]);
+            this.pitches[pitchName(i)]= new Pitch(
+                pitchName(i),
+                verticality[i]
+            );
         }
     }
 
@@ -213,7 +224,7 @@ class Verticality {
 
     set(verticality) {
         for(var name in this.pitches) {
-            this.setPitch(name, verticality[pitchNames.indexOf(name)]);
+            this.setPitch(name, verticality[pitchIndex(name)]);
         }
     }
 
@@ -289,20 +300,14 @@ class Verticality {
 
     transpose(n) {
         var mapping = function(name) {
-            return pitchNames[mod(
-                pitchNames.indexOf(name) - n,
-                pitchNames.length
-            )];
+            return pitchName(pitchIndex(name) - n);
         }
         this.transform(mapping);
     }
 
     mirror(center) {
         var mapping = function(name) {
-            return pitchNames[mod(
-                (2 * pitchNames.indexOf(center)) - pitchNames.indexOf(name),
-                pitchNames.length
-            )];
+            return pitchName((2 * pitchIndex(center)) - pitchIndex(name));
         }
         this.transform(mapping);
     }
@@ -410,10 +415,10 @@ class PitchCircle {
         verticality.transpose(this.interval * n);
     }
 
-    getDotCenter(pitchName) {
+    getDotCenter(name) {
         return {
-            x: this.center.x + (this.radius * Math.cos(pitchNames.indexOf(pitchName) * this.interval * 2 * Math.PI / pitchNames.length)),
-            y: this.center.y + (this.radius * Math.sin(pitchNames.indexOf(pitchName) * this.interval * 2 * Math.PI / pitchNames.length))
+            x: this.center.x + (this.radius * Math.cos(pitchIndex(name) * this.interval * 2 * Math.PI / pitchNames.length)),
+            y: this.center.y + (this.radius * Math.sin(pitchIndex(name) * this.interval * 2 * Math.PI / pitchNames.length))
         }
     }
 
@@ -482,7 +487,7 @@ class PitchCircle {
                 semicircle(
                     this.center,
                     this.radius,
-                    this.interval * pitchNames.indexOf(pitch) * 2 * Math.PI / pitchNames.length,
+                    this.interval * pitchIndex(pitch) * 2 * Math.PI / pitchNames.length,
                     true
                 );
             }
