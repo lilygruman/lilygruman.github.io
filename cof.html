@@ -7,15 +7,15 @@
     </head>
     <body>
         <h1>Interactive Chromatic Circles</h1>
-        <p>
+        <div id="buttons"></div>
+        <div id="canvasdiv">
             <canvas id="circles" width="700" height="400"></canvas>
+        </div>
+        <p>
             Rotate
             <button type="button" id="flat">Flat</button>
             <button type="button" id="sharp">Sharp</button>
-            by
-        </p>
-        <p>
-            fifths:
+            by fifths:
             <input type="number" id="numFifths" min="1" max="6" size="1" value="1"></input>
             , or semitones:
             <input type="number" id="numSemis" min="1" max="6" size="1" value="5"></input>
@@ -44,7 +44,7 @@
             <button type="button" id="clear">Clear</button>
         </p>
         <script src="scripts/circles.js"></script>
-        <p>
+        <p id="ack">
             Created by Lily Gruman.
             Based on
             <a href="http://www.musanim.com/mam/dyad.htm">

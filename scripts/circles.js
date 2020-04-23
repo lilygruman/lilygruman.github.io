@@ -27,9 +27,19 @@ var buttons = {
         flat: document.getElementById('flat'),
         sharp: document.getElementById('sharp'),
     },
-    mirror: document.getElementById('mirror')
+    mirror: document.getElementById('mirror'),
+    transition: {}
 }
 buttons.stop.disabled = true;
+
+for(var p of pitchNames) {
+    var buttondiv = document.getElementById('buttons');
+    var keydiv = document.createElement('div');
+    keydiv.id = p;
+    keydiv.innerHTML = p.toUpperCase();
+    keydiv.style.width = (100 / pitchNames.length) + '%';
+    buttondiv.appendChild(keydiv);
+}
 
 var inputs = {
     rotate: {
@@ -408,6 +418,10 @@ class Verticality {
     }
 
     draw() {
+        for(var id in buttons.transition) {
+            buttons.transition[id].remove();
+        }
+        buttons.transition = {};
         context.clearRect(0, 0, canvas.width, canvas.height);
         verticality.detect();
         for(var pc of this.pitchCircles) {
@@ -455,6 +469,22 @@ class Verticality {
                     ),
                     functionInfo[d].quality
                 );
+                var div = document.getElementById(key);
+                var paragraph = document.createElement('p');
+                var transitionButton = document.createElement('BUTTON');
+                var transitionString = destinations[d].spelling + ' (' + f + ' -> ' + d + ')';
+                var buttonText = document.createTextNode(transitionString);
+                var buttonProc = function(verticalityObject, verticalityArray) {
+                    return function() {
+                        verticalityObject.set(verticalityArray);
+                    };
+                };
+                transitionButton.onclick = buttonProc(this, destinations[d].verticality);
+                transitionButton.appendChild(buttonText);
+                transitionButton.id = transitionString;
+                div.appendChild(paragraph);
+                paragraph.appendChild(transitionButton);
+                buttons.transition[transitionString] = transitionButton;
             }
         }
     }

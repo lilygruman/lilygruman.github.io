@@ -4,7 +4,7 @@ html {
 }
 
 h1, h4, p {
-    text-align: center
+    text-align: center;
 }
 
 a:link {
@@ -15,12 +15,23 @@ a:visited {
     color: "#A040A0";
 }
 
-canvas {
+#canvasdiv  {
+    text-align: center;
     padding: 0;
-    margin: auto;
     display: block;
 }
 
-button {
-    display: inline-block;
+#buttons {
+    overflow: auto;
+}
+
+#buttons > div {
+    float: left;
+    text-align: center;
+    height: 20%;
+}
+
+#ack > p {
+    position: fixed;
+    bottom: 0;
 }
