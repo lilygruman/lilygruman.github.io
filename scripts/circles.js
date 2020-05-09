@@ -51,6 +51,12 @@ var inputs = {
     }
 }
 
+for(var pitch of pitchNames) {
+    var option = document.createElement('option');
+    option.value = pitch;
+    option.text = pitch.toUpperCase();
+    inputs.mirror.center.add(option);
+}
 function normalize(interval) {
     if(interval > pitchNames.length) {
         return normalize(interval - pitchNames.length);
