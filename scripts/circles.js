@@ -48,6 +48,10 @@ var inputs = {
     },
     mirror: {
         center: document.getElementById('mirror-center')
+    },
+    midi: {
+        input: document.getElementById('midiInSelect'),
+        output: document.getElementById('midiOutSelect')
     }
 }
 
@@ -57,6 +61,12 @@ for(var pitch of pitchNames) {
     option.text = pitch.toUpperCase();
     inputs.mirror.center.add(option);
 }
+if(navigator.requestMIDIAccess) {
+    webMIDIsetup();
+} else {
+    console.log('Web MIDI unavailable');
+}
+
 function normalize(interval) {
     if(interval > pitchNames.length) {
         return normalize(interval - pitchNames.length);
@@ -176,6 +186,28 @@ class PitchOscillator {
     }
 };
 
+const noteOff = 128;
+const noteOn = 144;
+const defaultVelocity = 100;
+
+var midiOut = {
+    send: () => {}
+};
+var midi;
+
+function webMIDIsetup() {
+    navigator.requestMIDIAccess().then(
+        enableMIDIhandling,
+        () => {
+            console.log('Failed to access MIDI devices');
+        }
+    );
+}
+
+function velocity(index) {
+    return -4 * index * (index - 127) / 127;
+}
+
 class Pitch {
     constructor(name, verticality, on = false) {
         this.name = name;
@@ -198,6 +230,11 @@ class Pitch {
     }
 
     turnOn() {
+        if(!this.on) {
+            for(var index = this.semitoneIndex; index < 128; index += pitchNames.length) {
+                midiOut.send([noteOn, index, velocity(index)]);
+            }
+        }
         this.on = true;
         this.verticality.draw();
         if(this.verticality.playing) {
@@ -206,6 +243,9 @@ class Pitch {
     }
 
     turnOff() {
+        for(var index = this.semitoneIndex; index < 128; index += pitchNames.length) {
+            midiOut.send([noteOn, index, 0]);
+        }
         this.on = false;
         this.verticality.draw();
         this.stop();
@@ -828,6 +868,70 @@ window.onkeydown = function() {
             break;
         default:
             verticality.togglePitch(event.key);
+            break;
+    }
+}
+
+function enableMIDIhandling(midiAccess) {
+    midi = midiAccess;
+    setMIDIinput();
+    setMIDIoutput();
+    inputs.midi.input.onchange = setMIDIinput;
+    inputs.midi.output.onchange = setMIDIoutput;
+
+    for(var input of midi.inputs.values()) {
+        var option = document.createElement('option');
+        option.value = input.name;
+        option.text = input.name;
+        inputs.midi.input.add(option);
+    }
+    for(var output of midi.inputs.values()) {
+        var option = document.createElement('option');
+        option.value = output.name;
+        option.text = output.name;
+        inputs.midi.output.add(option);
+    }
+}
+
+function setMIDIinput() {
+    for(var input of midi.inputs.values()) {
+        input.onmidimessage = (input.name === inputs.midi.input.value) ? handleMIDImessage : () => {};
+    }
+}
+
+function setMIDIoutput() {
+    if(inputs.midi.output.value === 'None') {
+        midiOut = {
+            send: () => {}
+        }
+        return;
+    }
+    for(var output of midi.outputs.values()) {
+        if(output.name === inputs.midi.output.value) {
+            midiOut = output;
+            return;
+        }
+    }
+}
+
+function handleMIDImessage(message) {
+    var command = message.data[0];
+    var pitch = pitchName(message.data[1]);
+    switch(command) {
+        case noteOn:
+            var velocity = message.data[2];
+            verticality.setPitch(
+                pitch,
+                velocity != 0
+            );
+            break;
+        case noteOff:
+            verticality.setPitch(
+                pitch,
+                false
+            );
+            break;
+        default:
             break;
     }
 }
