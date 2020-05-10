@@ -177,32 +177,37 @@ class PitchOscillator {
 };
 
 class Pitch {
-    constructor(name, on = false) {
+    constructor(name, verticality, on = false) {
         this.name = name;
         this.semitoneIndex = pitchIndex(name);
+        this.verticality = verticality;
         this.oscillator = new PitchOscillator(index2frequency(this.semitoneIndex));
-        this.on = on;
-    }
-
-    toggle(playing) {
-        if(this.on) {
-            this.turnOff();
+        if(on) {
+            this.turnOn();
         } else {
-            this.turnOn(playing);
+            this.turnOff();
         }
     }
 
-    turnOn(playing) {
+    toggle() {
+        if(this.on) {
+            this.turnOff();
+        } else {
+            this.turnOn();
+        }
+    }
+
+    turnOn() {
         this.on = true;
-        verticality.draw();
-        if(playing) {
+        this.verticality.draw();
+        if(this.verticality.playing) {
             this.play();
         }
     }
 
     turnOff() {
         this.on = false;
-        verticality.draw();
+        this.verticality.draw();
         this.stop();
     }
 
@@ -324,6 +329,7 @@ class Verticality {
         for(var i = 0; i < pitchNames.length; i++) {
             this.pitches[pitchName(i)]= new Pitch(
                 pitchName(i),
+                this,
                 verticality[i]
             );
         }
@@ -345,7 +351,7 @@ class Verticality {
         }
 
         if(value) {
-            this.pitches[name].turnOn(this.playing);
+            this.pitches[name].turnOn();
         } else {
             this.pitches[name].turnOff();
         }
@@ -360,7 +366,7 @@ class Verticality {
             return;
         }
 
-        this.pitches[name].toggle(this.playing);
+        this.pitches[name].toggle();
     }
 
     play() {
@@ -402,7 +408,7 @@ class Verticality {
         var verticality = this.get();
         for(var name in this.pitches) {
             if(verticality[mapping(name)]) {
-                this.pitches[name].turnOn(this.playing);
+                this.pitches[name].turnOn();
             } else {
                 this.pitches[name].turnOff();
             }
@@ -429,7 +435,7 @@ class Verticality {
         }
         buttons.transition = {};
         context.clearRect(0, 0, canvas.width, canvas.height);
-        verticality.detect();
+        this.detect();
         for(var pc of this.pitchCircles) {
             pc.draw();
         }
@@ -523,7 +529,7 @@ class PitchDot {
 
     onclick(mouse) {
         if(distance(this.center, mouse) < this.radius) {
-            verticality.togglePitch(this.pitch.name);
+            this.pitch.verticality.togglePitch(this.pitch.name);
         }
     }
 
@@ -531,11 +537,11 @@ class PitchDot {
         if(!this.pitch.on) {
             return;
         }
-        for(var name in verticality.pitches) {
-            if(!verticality.pitches[name].on) {
+        for(var name in this.pitch.verticality.pitches) {
+            if(!this.pitch.verticality.pitches[name].on) {
                 continue;
             }
-            var interval = normalize(verticality.pitches[name].semitoneIndex - this.pitch.semitoneIndex);
+            var interval = normalize(this.pitch.verticality.pitches[name].semitoneIndex - this.pitch.semitoneIndex);
             if(!(interval in intervalColors)) {
                 continue;
             }
@@ -572,21 +578,33 @@ class PitchCircle {
         }
     }
 
-    constructor(config) {
-        config = config || this.defaults();
-        this.interval = config.interval || this.defaults().interval;
-        this.center = config.center || this.defaults().center;
-        this.radius = config.radius || this.defaults().radius;
+    constructor(
+        verticality, 
+        interval = fifthInterval, 
+        center = {
+            x: canvas.width / 2,
+            y: canvas.width / 2
+        }, 
+        radius = Math.min(
+            canvas.width/2,
+            canvas.height/2
+        ) - 20
+    ) {
+        this.verticality = verticality;
+        this.verticality.registerPitchCircle(this);
+        this.interval = interval;
+        this.center = center;
+        this.radius = radius;
         this.mouse = undefined;
         this.dots = {};
-        for(var name in verticality.pitches) {
-            this.dots[name] = new PitchDot(this, verticality.pitches[name]);
+        for(var name in this.verticality.pitches) {
+            this.dots[name] = new PitchDot(this, this.verticality.pitches[name]);
         }
         this.draw();
     }
 
     rotate(n) {
-        verticality.transpose(this.interval * n);
+        this.verticality.transpose(this.interval * n);
     }
 
     getDotCenter(name) {
@@ -646,7 +664,7 @@ class PitchCircle {
 
     drawDiatonic() {
         context.fillStyle = 'rgba(255, 255, 255, 0.1)';
-        var v = verticality.get();
+        var v = this.verticality.get();
         for(var pitch in this.dots) {
             var diatonic = true;
             for(var i = 1; diatonic && (i < 6); i++) {
@@ -667,11 +685,11 @@ class PitchCircle {
     }
 
     drawHarmonicMode() {
-        if(!verticality.chord || !(verticality.chord.quality === 'major' || verticality.chord.quality === 'dominant')) {
+        if(!this.verticality.chord || !(this.verticality.chord.quality === 'major' || this.verticality.chord.quality === 'dominant')) {
             return;
         }
         context.fillStyle = 'rgba(255, 55, 55, 0.1)';
-        var VI = transpose(verticality.chord.root, 1);
+        var VI = transpose(this.verticality.chord.root, 1);
         semicircle(
             this.center,
             this.radius,
@@ -681,31 +699,31 @@ class PitchCircle {
     }
 }
 
-var cof = new PitchCircle({
-    interval: fifthInterval,
-    center: {
+var cof = new PitchCircle(
+    verticality,
+    fifthInterval,
+    {
         x: 0.75 * canvas.width,
         y: 0.5 * canvas.height
     },
-    radius: Math.min(
+    Math.min(
         canvas.width/4,
         canvas.height/2
     ) - 20
-});
-verticality.registerPitchCircle(cof);
+);
 
-var cosemi = new PitchCircle({
-    interval: semitoneInterval,
-    center: {
+var cosemi = new PitchCircle(
+    verticality,
+    semitoneInterval,
+    {
         x: 0.25 * canvas.width,
         y: 0.5 * canvas.height
     },
-    radius: Math.min(
+    Math.min(
         canvas.width/4,
         canvas.height/2
     ) - 20
-});
-verticality.registerPitchCircle(cosemi);
+);
 
 function getMouse() {
     return {
