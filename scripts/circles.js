@@ -676,7 +676,7 @@ class PitchCircle {
         }
 
         const pitchDotOffsetAngle = 2 * Math.PI / pitchNames.length;
-        var dtheta = moushePolar.theta - this.mouse.theta;
+        var dtheta = mousePolar.theta - this.mouse.theta;
 
         if(Math.abs(dtheta) < pitchDotOffsetAngle) {
             return;
